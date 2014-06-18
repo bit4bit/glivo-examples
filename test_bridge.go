@@ -1,7 +1,7 @@
 package main
 
 import "github.com/bit4bit/glivo"
-import "github.com/bit4bit/glivo/chain"
+import "github.com/bit4bit/glivo/dptools"
 import "github.com/bit4bit/gfsocket"
 
 import (
@@ -10,6 +10,7 @@ import (
 	"flag"
 	"syscall"
 	"os/signal"
+	"time"
 	"log"
 )
 var logger = log.New(os.Stdout, "glivo-test", log.LstdFlags)
@@ -31,23 +32,21 @@ func HandleCall(call *glivo.Call, userData interface{}) {
 	//defer call.Close()
 
 	call.Answer()
-	digits := chain.NewChainDigits(call)
-	digits.SetNumDigits(5)
-	digits.SetInvalidDigitsSound("/invalid.wav")
-	digits.SetRetries(4)
-	digits.SetValidDigits("123456789")
-	
-	
-	rst, _ := digits.Speak("sum one more one").Question("2")
-	if rst {
-		fmt.Println("HOO OK")
-	}else{
-		fmt.Println("HOO WRONG")
-	}
+	dptools := dptools.NewDPTools(call)
+	aleg, bleg := dptools.Bridge("user/1001")
 
-	cl, _ := digits.Speak("please digit something").CollectInput()
-	digits.Speak("Your input:").Speak(cl).Do()
-	digits.Speak("Thanks for using glivo :)").Do()
+	if aleg.Content["Variable_originate_disposition"] == "SUCCESS" {
+		fmt.Print(aleg.Content)
+		fmt.Printf("Aleg: %s", aleg.Content["Variable_hangup_cause"])
+	} else {
+		fmt.Printf("Aleg: %s", aleg.Content["Variable_originate_disposition"])
+	}
+	if bleg != nil {
+		fmt.Printf("Bleg: %s", aleg.Content["Variable_bridge_hangup_cause"])
+	}
+	fmt.Print("\n")
+
+
 	call.Hangup()
 }
 
@@ -93,7 +92,7 @@ func main() {
 		
 	logger.Println(fscmd.Api(fmt.Sprintf("originate {hangup_after_bridge=false,originate_early_media=false}user/%s '&socket(%s sync full)'", *userTest, *clientIP)))
 
-	
+	time.Sleep(20 * time.Second)
 
 
 
