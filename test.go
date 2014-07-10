@@ -20,6 +20,9 @@ var userTest = flag.String("user", "peter", "name of user to call for tests")
 var whatTest = flag.String("test","digits", "what test to run: digits")
 var onlyCall = flag.Bool("only-call",false, "only do originate")
 var onlyServer = flag.Bool("only-server", false, "only start listener")
+var gateway = flag.String("gateway", "user", "gateway")
+
+var waitHangup = make(chan bool)
 func usage() {
 	fmt.Printf("Usage of %s:\n", os.Args[0])
 	flag.PrintDefaults()
@@ -29,7 +32,7 @@ func usage() {
 
 func HandleCall(call *glivo.Call, userData interface{}) {
 	//defer call.Close()
-
+	call.WaitAnswer()
 	call.Answer()
 	digits := chain.NewChainDigits(call)
 	digits.SetNumDigits(5)
@@ -91,10 +94,15 @@ func main() {
 		os.Exit(1)
 	}
 		
-	logger.Println(fscmd.Api(fmt.Sprintf("originate {hangup_after_bridge=false,originate_early_media=false}user/%s '&socket(%s sync full)'", *userTest, *clientIP)))
-
-	
+	ret := fscmd.Api(fmt.Sprintf("originate {hangup_after_bridge=true,ignore_early_media=true}%s/%s '&socket(%s sync full)'", *gateway, *userTest, *clientIP))
+	fmt.Print(ret)
+	if ret.Status == "+OK" {
+		<-waitHangup
+	} else {
+		logger.Fatal(ret.Content)
+	}
 
 
 
 }
+

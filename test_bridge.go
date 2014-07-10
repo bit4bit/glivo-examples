@@ -30,7 +30,7 @@ func usage() {
 
 func HandleCall(call *glivo.Call, userData interface{}) {
 	//defer call.Close()
-
+	call.WaitAnswer()
 	call.Answer()
 	dptools := dptools.NewDPTools(call)
 	aleg, bleg := dptools.Bridge("user/1001")
@@ -97,3 +97,4 @@ func main() {
 
 
 }
+
